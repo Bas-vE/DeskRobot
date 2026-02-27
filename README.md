@@ -2,6 +2,8 @@
 
 ![Concept Enclosure](images/concept.png)
 
+![Blueprints](images/design.png)
+
 An interactive desktop robot based on the **ESP32-2432S028R** (also known as the *Cheap Yellow Display* or CYD). This project combines the charm of WALL-E (the caterpillar tracks and retro look) with the expressive, digitally animated eyes of EVE.
 
 The robot looks "alive" with smooth animations, responds to touches via the touchscreen, and will in the future automatically wake up when someone sits down at the desk.
