@@ -4,14 +4,20 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   eyeDist = 65;
   EVE_BLUE = tft.color565(0, 220, 255);
 
-  states[0] = {0.0, 0.0, 0.0, 0.0, 0.0,  0.0}; // 0: Normaal
-  states[1] = {0.9, 0.9, 0.0, 0.0, 0.0,  0.0}; // 1: Knipperen
-  states[2] = {0.9, 0.0, 0.0, 0.0, 0.0,  0.0}; // 2: Knipoog
-  states[3] = {0.0, 0.0, 0.0, 0.0, 1.0,  0.0}; // 3: Verdrietig 
-  states[4] = {0.0, 0.0, 1.0, 0.0, 0.0,  0.0}; // 4: Blij 
-  states[5] = {0.0, 0.0, 0.0, 1.0, 0.0,  0.0}; // 5: Boos (Midden)
-  states[6] = {0.0, 0.0, 0.0, 0.0, 0.0, -1.0}; // 6: Links
-  states[7] = {0.0, 0.0, 0.0, 0.0, 0.0,  1.0};  // 7: Rechts
+  EyeParams norm = { -0.15, 14.0, 16.0, 35.0, 0.0, 0.0 }; // \ / slightly tilted
+  EyeParams blnk = {  0.00,  2.0,  2.0, 35.0, 0.0, 0.0 }; // - - horizontal lines
+  EyeParams sad  = {  0.30, 16.0,  8.0, 35.0, 0.0, 0.0 }; // / \ inner big, outer small
+  EyeParams hapy = { -0.15, 16.0, 16.0, 35.0, 0.0, 1.0 }; // \ / with crescent crop
+  EyeParams angr = { -0.40, 16.0, 12.0, 35.0, 1.0, 0.0 }; // \ / steep with top crop
+
+  states[0] = {norm, norm,  0.0}; // 0: Normaal
+  states[1] = {blnk, blnk,  0.0}; // 1: Knipperen
+  states[2] = {blnk, norm,  0.0}; // 2: Knipoog
+  states[3] = {sad,  sad,   0.0}; // 3: Verdrietig 
+  states[4] = {hapy, hapy,  0.0}; // 4: Blij 
+  states[5] = {angr, angr,  0.0}; // 5: Boos (Midden)
+  states[6] = {norm, norm, -1.0}; // 6: Links
+  states[7] = {norm, norm,  1.0}; // 7: Rechts
 
   currentState = states[0];
   currentDrawnStateIndex = 0;
@@ -41,14 +47,22 @@ void RobotDisplay::init() {
   drawEyesState(currentState, false);
 }
 
+EyeParams RobotDisplay::lerpParams(EyeParams a, EyeParams b, float t) {
+  EyeParams res;
+  res.tilt      = a.tilt + (b.tilt - a.tilt) * t;
+  res.rInner    = a.rInner + (b.rInner - a.rInner) * t;
+  res.rOuter    = a.rOuter + (b.rOuter - a.rOuter) * t;
+  res.length    = a.length + (b.length - a.length) * t;
+  res.cutTop    = a.cutTop + (b.cutTop - a.cutTop) * t;
+  res.cutBottom = a.cutBottom + (b.cutBottom - a.cutBottom) * t;
+  return res;
+}
+
 EyeState RobotDisplay::lerpState(EyeState a, EyeState b, float t) {
   EyeState res;
-  res.blinkL = a.blinkL + (b.blinkL - a.blinkL) * t;
-  res.blinkR = a.blinkR + (b.blinkR - a.blinkR) * t;
-  res.happy  = a.happy  + (b.happy  - a.happy)  * t;
-  res.angry  = a.angry  + (b.angry  - a.angry)  * t;
-  res.sad    = a.sad    + (b.sad    - a.sad)    * t;
-  res.lookX  = a.lookX  + (b.lookX  - a.lookX)  * t;
+  res.left  = lerpParams(a.left, b.left, t);
+  res.right = lerpParams(a.right, b.right, t);
+  res.lookX = a.lookX + (b.lookX - a.lookX) * t;
   return res;
 }
 
@@ -68,24 +82,39 @@ void RobotDisplay::drawEyesState(EyeState s, bool presenceDetected) {
   int ly = scy;
   int rx = scx + eyeDist + lookOffset;
   int ry = scy;
-  int eyeW = 70;
-  int eyeHL = 100 - (s.blinkL * 90); 
-  int eyeHR = 100 - (s.blinkR * 90);
-  int radL = min(35, eyeHL / 2);
-  int radR = min(35, eyeHR / 2);
 
-  spr.fillSmoothRoundRect(lx - eyeW/2, ly - eyeHL/2, eyeW, eyeHL, radL, EVE_BLUE, TFT_BLACK);
-  spr.fillSmoothRoundRect(rx - eyeW/2, ry - eyeHR/2, eyeW, eyeHR, radR, EVE_BLUE, TFT_BLACK);
+  // Draw Left Eye (\ indicates tilt down-right, meaning outer is high, inner is low: norm is slightly \ /)
+  float pInL_x = lx + cos(s.left.tilt) * (s.left.length / 2.0);
+  float pInL_y = ly - sin(s.left.tilt) * (s.left.length / 2.0);
+  float pOutL_x = lx - cos(s.left.tilt) * (s.left.length / 2.0);
+  float pOutL_y = ly + sin(s.left.tilt) * (s.left.length / 2.0);
+  spr.drawWedgeLine(pInL_x, pInL_y, pOutL_x, pOutL_y, s.left.rInner, s.left.rOuter, EVE_BLUE);
 
-  if (s.happy > 0.01) {
-    int offsetY = 25 + ((1.0 - s.happy) * 50); 
-    spr.fillEllipse(lx, ly + offsetY, 50, 40, TFT_BLACK);
-    spr.fillEllipse(rx, ry + offsetY, 50, 40, TFT_BLACK);
+  // Draw Right Eye
+  float pInR_x = rx - cos(s.right.tilt) * (s.right.length / 2.0);
+  float pInR_y = ry - sin(s.right.tilt) * (s.right.length / 2.0);
+  float pOutR_x = rx + cos(s.right.tilt) * (s.right.length / 2.0);
+  float pOutR_y = ry + sin(s.right.tilt) * (s.right.length / 2.0);
+  spr.drawWedgeLine(pInR_x, pInR_y, pOutR_x, pOutR_y, s.right.rInner, s.right.rOuter, EVE_BLUE);
+
+  // Cut Top (Angry flatten)
+  if (s.left.cutTop > 0.01) {
+    float dropL = 40.0 * s.left.cutTop; // 0 to 40 pixels down from the top boundary
+    spr.fillRect(lx - 40, ly - 40, 80, dropL, TFT_BLACK);
   }
-  if (s.angry > 0.01) {
-    int dropY = -60 + (s.angry * 70); 
-    spr.fillTriangle(lx - 15, ly - 60, lx + 55, ly - 60, lx + 55, ly + dropY, TFT_BLACK);
-    spr.fillTriangle(rx + 15, ry - 60, rx - 55, ry - 60, rx - 55, ry + dropY, TFT_BLACK);
+  if (s.right.cutTop > 0.01) {
+    float dropR = 40.0 * s.right.cutTop; 
+    spr.fillRect(rx - 40, ry - 40, 80, dropR, TFT_BLACK);
+  }
+
+  // Cut Bottom (Happy crescent)
+  if (s.left.cutBottom > 0.01) {
+    float offL = 35 - (s.left.cutBottom * 25);
+    spr.fillEllipse(lx, ly + offL, 35, 25, TFT_BLACK);
+  }
+  if (s.right.cutBottom > 0.01) {
+    float offR = 35 - (s.right.cutBottom * 25);
+    spr.fillEllipse(rx, ry + offR, 35, 25, TFT_BLACK);
   }
 
   // --- PRESENCE INDICATOR ---

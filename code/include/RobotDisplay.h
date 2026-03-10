@@ -8,12 +8,18 @@
 #define SPRITE_H 160
 #define TFT_BL 21
 
+struct EyeParams {
+  float tilt;       
+  float rInner;     
+  float rOuter;     
+  float length;     
+  float cutTop;     
+  float cutBottom;  
+};
+
 struct EyeState {
-  float blinkL; 
-  float blinkR; 
-  float happy;  
-  float angry;  
-  float sad;    
+  EyeParams left;
+  EyeParams right;
   float lookX;  
 };
 
@@ -41,6 +47,7 @@ private:
   int animSequence[11];
   int animDurations[11];
 
+  EyeParams lerpParams(EyeParams a, EyeParams b, float t);
   EyeState lerpState(EyeState a, EyeState b, float t);
   void drawEyesState(EyeState s, bool presenceDetected);
 };
