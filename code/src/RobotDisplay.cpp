@@ -67,9 +67,9 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
         
         // Scanlines: every 3rd pixel line is drawn dark to mimic CRT pixels
         if ((cy + y) % 3 == 0) {
-           spr.drawPixel(cx + x, cy + y, spr.color8To16(spr.color16to8(EVE_BLUE_DARK)));
+           spr.drawPixel(cx + x, cy + y, spr.color8to16(spr.color16to8(EVE_BLUE_DARK)));
         } else {
-           spr.drawPixel(cx + x, cy + y, spr.color8To16(spr.color16to8(EVE_BLUE)));
+           spr.drawPixel(cx + x, cy + y, spr.color8to16(spr.color16to8(EVE_BLUE)));
         }
       }
     }
@@ -111,12 +111,12 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // --- PRESENCE INDICATOR ---
   /*
   if (presenceDetected) {
-    spr.fillCircle(12, 12, 6, spr.color8To16(spr.color16to8(TFT_GREEN)));
-    spr.setTextColor(spr.color8To16(spr.color16to8(TFT_GREEN)), TFT_BLACK);
+    spr.fillCircle(12, 12, 6, spr.color8to16(spr.color16to8(TFT_GREEN)));
+    spr.setTextColor(spr.color8to16(spr.color16to8(TFT_GREEN)), TFT_BLACK);
     spr.drawString("Radar: ON", 24, 6, 2);
   } else {
-    spr.fillCircle(12, 12, 6, spr.color8To16(spr.color16to8(TFT_RED)));
-    spr.setTextColor(spr.color8To16(spr.color16to8(TFT_RED)), TFT_BLACK);
+    spr.fillCircle(12, 12, 6, spr.color8to16(spr.color16to8(TFT_RED)));
+    spr.setTextColor(spr.color8to16(spr.color16to8(TFT_RED)), TFT_BLACK);
     spr.drawString("Radar: OFF", 24, 6, 2);
   }
   */
