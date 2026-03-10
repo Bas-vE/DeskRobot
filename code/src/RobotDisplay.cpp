@@ -16,7 +16,13 @@ void RobotDisplay::init() {
   tft.init();
   tft.setRotation(1); 
   tft.fillScreen(TFT_BLACK);
+  
+  // Set Sprite color depth to 8-bit to fit in ESP32 RAM (320x240x1 byte = 76.8KB)
+  spr.setColorDepth(8);
   spr.createSprite(SPRITE_W, SPRITE_H);
+  
+  // Create an 8-bit palette definition to map our 16-bit colors down to 8-bit
+  spr.createPalette(nullptr, 0); 
 }
 
 void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
@@ -62,11 +68,11 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
       // Mathematical ellipse formula check
       if ((rx * rx) / (a * a) + (ey_scaled * ey_scaled) / (b * b) <= 1.0) {
         
-        // Scanlines: every 3rd pixel line is drawn dark to mimicCRT pixels
+        // Scanlines: every 3rd pixel line is drawn dark to mimic CRT pixels
         if ((cy + y) % 3 == 0) {
-           spr.drawPixel(cx + x, cy + y, EVE_BLUE_DARK);
+           spr.drawPixel(cx + x, cy + y, spr.color8To16(spr.color16to8(EVE_BLUE_DARK)));
         } else {
-           spr.drawPixel(cx + x, cy + y, EVE_BLUE);
+           spr.drawPixel(cx + x, cy + y, spr.color8To16(spr.color16to8(EVE_BLUE)));
         }
       }
     }
@@ -108,15 +114,15 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // --- PRESENCE INDICATOR ---
   /*
   if (presenceDetected) {
-    spr.fillCircle(12, 12, 6, TFT_GREEN);
-    spr.setTextColor(TFT_GREEN, TFT_BLACK);
+    spr.fillCircle(12, 12, 6, spr.color8To16(spr.color16to8(TFT_GREEN)));
+    spr.setTextColor(spr.color8To16(spr.color16to8(TFT_GREEN)), TFT_BLACK);
     spr.drawString("Radar: ON", 24, 6, 2);
   } else {
-    spr.fillCircle(12, 12, 6, TFT_RED);
-    spr.setTextColor(TFT_RED, TFT_BLACK);
+    spr.fillCircle(12, 12, 6, spr.color8To16(spr.color16to8(TFT_RED)));
+    spr.setTextColor(spr.color8To16(spr.color16to8(TFT_RED)), TFT_BLACK);
     spr.drawString("Radar: OFF", 24, 6, 2);
   }
-*/
+  */
 
   // Push sprite to TFT screen from center coordinate
   spr.pushSprite((tft.width() - SPRITE_W) / 2, (tft.height() - SPRITE_H) / 2);
