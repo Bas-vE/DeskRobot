@@ -125,13 +125,13 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Smoothly lerp towards target look direction
   currentLookX = currentLookX + (targetLookX - currentLookX) * 0.1;
 
-  // Smoothly lerp blink states
-  currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.15;
-  currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.15;
+  // Smoothly lerp blink states (increased from 0.15 to 0.45 for much faster blinking)
+  currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.45;
+  currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.45;
   
-  // Auto-reverse blink when fully closed
-  if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.95) targetBlinkLeft = 0.0;
-  if (targetBlinkRight > 0.5 && currentBlinkRight > 0.95) targetBlinkRight = 0.0;
+  // Auto-reverse blink when almost fully closed (lowered threshold slightly from 0.95 to 0.90 for snappier return)
+  if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;
+  if (targetBlinkRight > 0.5 && currentBlinkRight > 0.90) targetBlinkRight = 0.0;
 
   // Breathing / Hovering math
   float floatY = sin(now / 800.0) * 3.0; 
