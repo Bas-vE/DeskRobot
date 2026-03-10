@@ -8,27 +8,16 @@
 #define SPRITE_H 160
 #define TFT_BL 21
 
-struct EyeParams {
-  float tilt;       
-  float rInner;     
-  float rOuter;     
-  float length;     
-  float cutTop;     
-  float cutBottom;  
-};
-
-struct EyeState {
-  EyeParams left;
-  EyeParams right;
-  float lookX;  
-};
-
 class RobotDisplay {
 public:
   RobotDisplay();
   void init();
+  
+  // Update the eye positions dynamically
   void update(unsigned long now, bool presenceDetected);
-  void transitionTo(int targetIndex);
+  
+  // 6 = links, 7 = rechts, any other = center/normal
+  void transitionTo(int targetIndex); 
 
 private:
   TFT_eSPI tft;
@@ -36,20 +25,13 @@ private:
 
   int eyeDist;
   uint16_t EVE_BLUE;
+  uint16_t EVE_BLUE_DARK;
 
-  EyeState states[8];
-  EyeState currentState;
-  int currentDrawnStateIndex;
+  float targetLookX;
+  float currentLookX;
 
-  unsigned long lastAnim;
-  int currentStep;
-  int totalSteps;
-  int animSequence[11];
-  int animDurations[11];
-
-  EyeParams lerpParams(EyeParams a, EyeParams b, float t);
-  EyeState lerpState(EyeState a, EyeState b, float t);
-  void drawEyesState(EyeState s, bool presenceDetected);
+  // Draws a math-based tilted oval mimicking Eve's eyes
+  void drawEveEye(int cx, int cy, bool isLeft);
 };
 
 #endif
