@@ -15,6 +15,7 @@ TFT_eSprite spr = TFT_eSprite(&tft);
 XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
 
 #define TFT_BL 21
+#define RADAR_PIN 22
 uint16_t EVE_BLUE = tft.color565(0, 220, 255);
 
 #define SPRITE_W 240
@@ -53,6 +54,8 @@ int currentStep = 0;
 
 bool isTouchOverride = false;
 unsigned long lastTouchTime = 0;
+
+bool isPresenceDetected = false;
 
 EyeState lerpState(EyeState a, EyeState b, float t) {
   EyeState res;
@@ -107,6 +110,17 @@ void drawEyesState(EyeState s) {
     spr.fillTriangle(rx + 15, ry - 60, rx - 55, ry - 60, rx - 55, ry + dropY, TFT_BLACK);
   }
 
+  // --- PRESENCE INDICATOR ---
+  if (isPresenceDetected) {
+    spr.fillCircle(12, 12, 6, TFT_GREEN);
+    spr.setTextColor(TFT_GREEN, TFT_BLACK);
+    spr.drawString("Radar: ON", 24, 6, 2);
+  } else {
+    spr.fillCircle(12, 12, 6, TFT_RED);
+    spr.setTextColor(TFT_RED, TFT_BLACK);
+    spr.drawString("Radar: OFF", 24, 6, 2);
+  }
+
   spr.pushSprite((tft.width() - SPRITE_W) / 2, (tft.height() - SPRITE_H) / 2);
 }
 
@@ -133,6 +147,8 @@ void setup() {
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 
+  pinMode(RADAR_PIN, INPUT);
+
   tft.init();
   tft.setRotation(1); 
   tft.fillScreen(TFT_BLACK);
@@ -147,6 +163,8 @@ void setup() {
 
 void loop() {
   unsigned long now = millis();
+
+  isPresenceDetected = digitalRead(RADAR_PIN);
 
   if (ts.touched()) {
     isTouchOverride = true;
