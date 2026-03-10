@@ -19,6 +19,9 @@ void setup() {
   Serial.println("EVE-TV Modules Initialized");
 }
 
+unsigned long lastBlinkTime = 0;
+int nextBlinkInterval = 3000;
+
 void loop() {
   unsigned long now = millis();
 
@@ -32,6 +35,16 @@ void loop() {
     robotDisplay.transitionTo(touchStateTarget);
   } else if (!robotTouch.isOverrideActive()) {
     // 3. Update AI/Animations (Only if we aren't being overridden by touch)
+    if (now - lastBlinkTime > nextBlinkInterval) {
+      if (random(0, 5) == 0) {
+        robotDisplay.wink(random(0, 2) == 0); // 1 in 5 chance to randomly wink instead of blink
+      } else {
+        robotDisplay.blink();
+      }
+      lastBlinkTime = now;
+      nextBlinkInterval = random(2000, 6000); // Wait 2 to 6 seconds for the next blink
+    }
+    
     robotDisplay.update(now, presence);
   } else {
     // If touch override is active but we received -1, it means we are in the timeout period. 

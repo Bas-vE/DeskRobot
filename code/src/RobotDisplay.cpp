@@ -7,6 +7,11 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   
   targetLookX = 0;
   currentLookX = 0;
+
+  targetBlinkLeft = 0;
+  currentBlinkLeft = 0;
+  targetBlinkRight = 0;
+  currentBlinkRight = 0;
 }
 
 void RobotDisplay::init() {
@@ -22,7 +27,7 @@ void RobotDisplay::init() {
   spr.createSprite(SPRITE_W, SPRITE_H);
 }
 
-void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
+void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount) {
   // Eve's eyes tilt slightly backwards.
   // Left eye top points slightly inward/right (clockwise). Right eye top points left (counter-clockwise).
   float angle_deg = isLeft ? 15.0 : -15.0; 
@@ -65,6 +70,19 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
       // Mathematical ellipse formula check
       if ((rx * rx) / (a * a) + (ey_scaled * ey_scaled) / (b * b) <= 1.0) {
         
+        // Blink cutout logic (Dynamic crescent mask)
+        // We carve a chunk out of the bottom using another wide ellipse.
+        if (blinkAmount > 0.01) {
+           float maskOffset_Y = 110.0 - (blinkAmount * 70.0); 
+           float mask_a = 85.0; // wider than the eye
+           float mask_b = 60.0; // tall enough to form a smooth curve
+           float mask_ry = ry - maskOffset_Y; 
+           
+           if ((rx * rx) / (mask_a * mask_a) + (mask_ry * mask_ry) / (mask_b * mask_b) <= 1.0) {
+               continue; // Pixel is carved out, do not draw!
+           }
+        }
+
         // Scanlines: every 3rd pixel line is drawn dark to mimic CRT pixels
         if ((cy + y) % 3 == 0) {
            spr.drawPixel(cx + x, cy + y, spr.color8to16(spr.color16to8(EVE_BLUE_DARK)));
@@ -73,6 +91,19 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
         }
       }
     }
+  }
+}
+
+void RobotDisplay::blink() {
+  targetBlinkLeft = 1.0;
+  targetBlinkRight = 1.0;
+}
+
+void RobotDisplay::wink(bool leftEye) {
+  if (leftEye) {
+    targetBlinkLeft = 1.0;
+  } else {
+    targetBlinkRight = 1.0;
   }
 }
 
@@ -94,6 +125,14 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Smoothly lerp towards target look direction
   currentLookX = currentLookX + (targetLookX - currentLookX) * 0.1;
 
+  // Smoothly lerp blink states
+  currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.15;
+  currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.15;
+  
+  // Auto-reverse blink when fully closed
+  if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.95) targetBlinkLeft = 0.0;
+  if (targetBlinkRight > 0.5 && currentBlinkRight > 0.95) targetBlinkRight = 0.0;
+
   // Breathing / Hovering math
   float floatY = sin(now / 800.0) * 3.0; 
   float wanderX = sin(now / 1500.0) * cos(now / 2000.0) * 2.0;
@@ -104,9 +143,9 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Add touch look offset
   int lookOffset = currentLookX * 25; 
   
-  // Draw the two math-based static Eve eyes
-  drawEveEye(scx - eyeDist + lookOffset, scy, true);
-  drawEveEye(scx + eyeDist + lookOffset, scy, false);
+  // Draw the two math-based static Eve eyes with dynamic blinking cutouts
+  drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft);
+  drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight);
 
   // --- PRESENCE INDICATOR ---
   /*

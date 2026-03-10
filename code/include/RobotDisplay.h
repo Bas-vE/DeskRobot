@@ -19,6 +19,10 @@ public:
   // 6 = links, 7 = rechts, any other = center/normal
   void transitionTo(int targetIndex); 
 
+  // Trigger eye animations
+  void blink();
+  void wink(bool leftEye);
+
 private:
   TFT_eSPI tft;
   TFT_eSprite spr;
@@ -30,8 +34,13 @@ private:
   float targetLookX;
   float currentLookX;
 
+  float targetBlinkLeft;
+  float currentBlinkLeft;
+  float targetBlinkRight;
+  float currentBlinkRight;
+
   // Draws a math-based tilted oval mimicking Eve's eyes
-  void drawEveEye(int cx, int cy, bool isLeft);
+  void drawEveEye(int cx, int cy, bool isLeft, float blinkAmount);
 };
 
 #endif
