@@ -20,9 +20,6 @@ void RobotDisplay::init() {
   // Set Sprite color depth to 8-bit to fit in ESP32 RAM (320x240x1 byte = 76.8KB)
   spr.setColorDepth(8);
   spr.createSprite(SPRITE_W, SPRITE_H);
-  
-  // Create an 8-bit palette definition to map our 16-bit colors down to 8-bit
-  spr.createPalette(nullptr, 0); 
 }
 
 void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
