@@ -147,7 +147,7 @@ void setup() {
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 
-  pinMode(RADAR_PIN, INPUT);
+  pinMode(RADAR_PIN, INPUT_PULLDOWN);
 
   tft.init();
   tft.setRotation(1); 
