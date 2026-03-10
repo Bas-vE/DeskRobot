@@ -4,8 +4,8 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 
-#define SPRITE_W 240
-#define SPRITE_H 160
+#define SPRITE_W 320
+#define SPRITE_H 240
 #define TFT_BL 21
 
 class RobotDisplay {

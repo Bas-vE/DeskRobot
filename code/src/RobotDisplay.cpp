@@ -1,7 +1,7 @@
 #include "RobotDisplay.h"
 
 RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
-  eyeDist = 55;
+  eyeDist = 80;
   EVE_BLUE = tft.color565(0, 180, 255);
   EVE_BLUE_DARK = tft.color565(0, 40, 80);
   
@@ -28,12 +28,12 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft) {
   float sinA = sin(rad);
   
   // Define bounding box for our math renderer to check pixels
-  int w = 45; 
-  int h = 35;
+  int w = 65; 
+  int h = 50;
   
   // Base radii of the ellipse
-  float a = 38.0; // horizontal 
-  float b = 25.0; // vertical 
+  float a = 55.0; // horizontal 
+  float b = 38.0; // vertical 
   
   // Draw pixel by pixel to form the precise shape with scanlines
   for (int y = -h; y <= h; y++) {
@@ -106,6 +106,7 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   drawEveEye(scx + eyeDist + lookOffset, scy, false);
 
   // --- PRESENCE INDICATOR ---
+  /*
   if (presenceDetected) {
     spr.fillCircle(12, 12, 6, TFT_GREEN);
     spr.setTextColor(TFT_GREEN, TFT_BLACK);
@@ -115,6 +116,7 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
     spr.setTextColor(TFT_RED, TFT_BLACK);
     spr.drawString("Radar: OFF", 24, 6, 2);
   }
+*/
 
   // Push sprite to TFT screen from center coordinate
   spr.pushSprite((tft.width() - SPRITE_W) / 2, (tft.height() - SPRITE_H) / 2);
