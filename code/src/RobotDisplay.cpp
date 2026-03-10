@@ -126,8 +126,8 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentLookX = currentLookX + (targetLookX - currentLookX) * 0.1;
 
   // Smoothly lerp blink states (increased from 0.15 to 0.45 for much faster blinking)
-  currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.45;
-  currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.45;
+  currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.7;
+  currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
   // Auto-reverse blink when almost fully closed (lowered threshold slightly from 0.95 to 0.90 for snappier return)
   if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;

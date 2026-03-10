@@ -42,7 +42,7 @@ void loop() {
         robotDisplay.blink();
       }
       lastBlinkTime = now;
-      nextBlinkInterval = random(2000, 6000); // Wait 2 to 6 seconds for the next blink
+      nextBlinkInterval = random(7000, 10000); // Wait 2 to 6 seconds for the next blink
     }
     
     robotDisplay.update(now, presence);
