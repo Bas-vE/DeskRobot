@@ -12,6 +12,11 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   currentBlinkLeft = 0;
   targetBlinkRight = 0;
   currentBlinkRight = 0;
+
+  targetHappyLeft = 0;
+  currentHappyLeft = 0;
+  targetHappyRight = 0;
+  currentHappyRight = 0;
 }
 
 void RobotDisplay::init() {
@@ -27,7 +32,7 @@ void RobotDisplay::init() {
   spr.createSprite(SPRITE_W, SPRITE_H);
 }
 
-void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount) {
+void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount) {
   // Eve's eyes tilt slightly backwards.
   // Left eye top points slightly inward/right (clockwise). Right eye top points left (counter-clockwise).
   float angle_deg = isLeft ? 15.0 : -15.0; 
@@ -42,6 +47,9 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount) {
   // Base radii of the ellipse
   float a = 55.0; // horizontal 
   float b = 38.0; // vertical 
+  
+  // Squish the height towards the center for the blink animation (from 38 down to 8 radius = 16px high)
+  b = 38.0 - (blinkAmount * 30.0);
   
   // Draw pixel by pixel to form the precise shape with scanlines
   for (int y = -h; y <= h; y++) {
@@ -70,10 +78,10 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount) {
       // Mathematical ellipse formula check
       if ((rx * rx) / (a * a) + (ey_scaled * ey_scaled) / (b * b) <= 1.0) {
         
-        // Blink cutout logic (Dynamic crescent mask)
+        // Happy cutout logic (Dynamic crescent mask)
         // We carve a chunk out of the bottom using another wide ellipse.
-        if (blinkAmount > 0.01) {
-           float maskOffset_Y = 110.0 - (blinkAmount * 70.0); 
+        if (happyAmount > 0.01) {
+           float maskOffset_Y = 110.0 - (happyAmount * 70.0); 
            float mask_a = 85.0; // wider than the eye
            float mask_b = 60.0; // tall enough to form a smooth curve
            float mask_ry = ry - maskOffset_Y; 
@@ -107,6 +115,11 @@ void RobotDisplay::wink(bool leftEye) {
   }
 }
 
+void RobotDisplay::triggerHappy() {
+  targetHappyLeft = 1.0;
+  targetHappyRight = 1.0;
+}
+
 void RobotDisplay::transitionTo(int targetIndex) {
   // No complex animations anymore, just offset the look target
   if (targetIndex == 6) {       // Touch Left
@@ -129,9 +142,17 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.7;
   currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
+  // Smoothly lerp happy states
+  currentHappyLeft = currentHappyLeft + (targetHappyLeft - currentHappyLeft) * 0.3;
+  currentHappyRight = currentHappyRight + (targetHappyRight - currentHappyRight) * 0.3;
+
   // Auto-reverse blink when almost fully closed (lowered threshold slightly from 0.95 to 0.90 for snappier return)
   if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;
   if (targetBlinkRight > 0.5 && currentBlinkRight > 0.90) targetBlinkRight = 0.0;
+
+  // Auto-reverse happy state so it doesn't get stuck forever
+  if (targetHappyLeft > 0.5 && currentHappyLeft > 0.95) targetHappyLeft = 0.0;
+  if (targetHappyRight > 0.5 && currentHappyRight > 0.95) targetHappyRight = 0.0;
 
   // Breathing / Hovering math
   float floatY = sin(now / 800.0) * 3.0; 
@@ -144,8 +165,8 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   int lookOffset = currentLookX * 25; 
   
   // Draw the two math-based static Eve eyes with dynamic blinking cutouts
-  drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft);
-  drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight);
+  drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft, currentHappyLeft);
+  drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight, currentHappyRight);
 
   // --- PRESENCE INDICATOR ---
   /*
