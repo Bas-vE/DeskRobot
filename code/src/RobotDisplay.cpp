@@ -178,8 +178,8 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
   // Smoothly lerp happy and sleep states (Increased happy speed to 0.5)
-  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.5;
-  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.5;
+  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.7;
+  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.7;
 
   currentSleep = currentSleep + (targetSleep - currentSleep) * 0.15; // Increased from 0.05 to 0.15 for faster closing
 
@@ -192,10 +192,10 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
     zFloatTime += 0.02;
     if (zFloatTime > 1.0) zFloatTime = 0.0;
     
-    // 3 Z's with different sizes and phases - Centered and Bigger
-    drawZzz(110, 140, 40, zFloatTime);
-    drawZzz(145, 120, 70, fmod(zFloatTime + 0.3, 1.0)); 
-    drawZzz(190, 130, 50, fmod(zFloatTime + 0.6, 1.0));
+    // 3 Z's with different sizes and phases - Spread out and Centered
+    drawZzz(70, 160, 40, zFloatTime);
+    drawZzz(125, 120, 70, fmod(zFloatTime + 0.3, 1.0)); 
+    drawZzz(210, 150, 50, fmod(zFloatTime + 0.6, 1.0));
   }
 
   // Breathing / Hovering math
