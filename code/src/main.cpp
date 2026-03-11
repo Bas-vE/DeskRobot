@@ -22,36 +22,77 @@ void setup() {
 unsigned long lastBlinkTime = 0;
 int nextBlinkInterval = 3000;
 
+enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING };
+RobotMode currentMode = MODE_NORMAL;
+
+unsigned long modeStartTime = 0;
+unsigned long happyDuration = 0;
+unsigned long presenceStartTime = 0;
+bool lastPresenceState = false;
+
 void loop() {
   unsigned long now = millis();
 
   // 1. Read Sensor data
   bool presence = robotSensor.isPresenceDetected();
+  
+  // Presence/Absence detection logic for Sleep/Wake
+  if (presence != lastPresenceState) {
+    presenceStartTime = now;
+    lastPresenceState = presence;
+  }
+
+  // State Transitions
+  if (currentMode == MODE_SLEEPING) {
+    if (presence && (now - presenceStartTime > 2000)) {
+      currentMode = MODE_NORMAL;
+      robotDisplay.setSleep(false);
+      Serial.println("Waking up...");
+    }
+  } else {
+    // If we lose presence, we go to sleep immediately
+    if (!presence) {
+      currentMode = MODE_SLEEPING;
+      robotDisplay.setSleep(true);
+      robotDisplay.setHappy(false);
+      Serial.println("Going to sleep...");
+    }
+  }
+
+  // Behavioral specific updates
+  if (currentMode == MODE_NORMAL) {
+    if (now - lastBlinkTime > nextBlinkInterval) {
+      int roll = random(0, 10);
+      if (roll < 2) {
+        robotDisplay.wink(random(0, 2) == 0); 
+      } else if (roll < 4) {
+        // Switch to Happy state instead of just a trigger
+        currentMode = MODE_HAPPY;
+        modeStartTime = now;
+        happyDuration = random(15000, 20000); 
+        robotDisplay.setHappy(true);
+        Serial.println("Feeling happy...");
+      } else {
+        robotDisplay.blink(); 
+      }
+      lastBlinkTime = now;
+      nextBlinkInterval = random(7000, 10000); 
+    }
+  } else if (currentMode == MODE_HAPPY) {
+    if (now - modeStartTime > happyDuration) {
+      currentMode = MODE_NORMAL;
+      robotDisplay.setHappy(false);
+      lastBlinkTime = now; // reset blink timer
+      Serial.println("Back to normal.");
+    }
+  }
 
   // 2. Read Touch Input
   int touchStateTarget = robotTouch.checkTouch();
   if (touchStateTarget != -1) {
-    // If a touch event requires an animation change
     robotDisplay.transitionTo(touchStateTarget);
-  } else if (!robotTouch.isOverrideActive()) {
-    // 3. Update AI/Animations (Only if we aren't being overridden by touch)
-    if (now - lastBlinkTime > nextBlinkInterval) {
-      int roll = random(0, 10);
-      if (roll < 2) {
-        robotDisplay.wink(random(0, 2) == 0); // 20% chance to randomly wink
-      } else if (roll < 4) {
-        robotDisplay.triggerHappy();          // 20% chance to do a Happy crescent expression
-      } else {
-        robotDisplay.blink();                 // 60% chance to do a normal blink
-      }
-      lastBlinkTime = now;
-      nextBlinkInterval = random(7000, 10000); // Wait 2 to 6 seconds for the next blink
-    }
-    
-    robotDisplay.update(now, presence);
   } else {
-    // If touch override is active but we received -1, it means we are in the timeout period. 
-    // Simply render the current state.
-    robotDisplay.update(now, presence); // (The update loop handles its own internal timing)
+    // 3. Update Display
+    robotDisplay.update(now, presence);
   }
 }

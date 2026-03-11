@@ -22,7 +22,8 @@ public:
   // Trigger eye animations
   void blink();
   void wink(bool leftEye);
-  void triggerHappy();
+  void setHappy(bool active);
+  void setSleep(bool active);
 
 private:
   TFT_eSPI tft;
@@ -40,13 +41,17 @@ private:
   float targetBlinkRight;
   float currentBlinkRight;
 
-  float targetHappyLeft;
+  float targetHappy;
   float currentHappyLeft;
-  float targetHappyRight;
   float currentHappyRight;
 
+  float targetSleep;
+  float currentSleep;
+  float zFloatTime;
+
   // Draws a math-based tilted oval mimicking Eve's eyes
-  void drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount);
+  void drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount, float sleepAmount);
+  void drawZzz(int x, int y, int size, float offset);
 };
 
 #endif

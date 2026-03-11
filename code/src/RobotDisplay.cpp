@@ -13,10 +13,13 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   targetBlinkRight = 0;
   currentBlinkRight = 0;
 
-  targetHappyLeft = 0;
+  targetHappy = 0;
   currentHappyLeft = 0;
-  targetHappyRight = 0;
   currentHappyRight = 0;
+
+  targetSleep = 0;
+  currentSleep = 0;
+  zFloatTime = 0;
 }
 
 void RobotDisplay::init() {
@@ -32,7 +35,7 @@ void RobotDisplay::init() {
   spr.createSprite(SPRITE_W, SPRITE_H);
 }
 
-void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount) {
+void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount, float sleepAmount) {
   // Eve's eyes tilt slightly backwards.
   // Left eye top points slightly inward/right (clockwise). Right eye top points left (counter-clockwise).
   float angle_deg = isLeft ? 15.0 : -15.0; 
@@ -48,8 +51,17 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, fl
   float a = 55.0; // horizontal 
   float b = 38.0; // vertical 
   
-  // Squish the height towards the center for the blink animation (from 38 down to 8 radius = 16px high)
-  b = 38.0 - (blinkAmount * 30.0);
+  // Sleep squish: Eyes go to 0 height
+  b = b * (1.0 - sleepAmount);
+
+  // Squish the height towards the center for the blink animation (from current height down to 8 radius = 16px high)
+  // If we are sleeping, b is already tiny or zero.
+  if (b > 8.0) {
+    b = b - (blinkAmount * (b - 8.0));
+  }
+  
+  // If b is effectively zero, don't bother drawing
+  if (b < 0.5) return;
   
   // Draw pixel by pixel to form the precise shape with scanlines
   for (int y = -h; y <= h; y++) {
@@ -115,9 +127,32 @@ void RobotDisplay::wink(bool leftEye) {
   }
 }
 
-void RobotDisplay::triggerHappy() {
-  targetHappyLeft = 1.0;
-  targetHappyRight = 1.0;
+void RobotDisplay::setHappy(bool active) {
+  targetHappy = active ? 1.0 : 0.0;
+}
+
+void RobotDisplay::setSleep(bool active) {
+  targetSleep = active ? 1.0 : 0.0;
+}
+
+void RobotDisplay::drawZzz(int x, int y, int size, float offset) {
+  // Draw a simple 'Z' using 3 rectangles
+  // offset 0..1 determines floating vertical position
+  int curY = y - (offset * 30);
+  uint16_t color = spr.color8to16(spr.color16to8(EVE_BLUE));
+  
+  // Top bar
+  spr.fillRect(x, curY, size, size/4, color);
+  // Bottom bar
+  spr.fillRect(x, curY + size - size/4, size, size/4, color);
+  // Diagonal (simplified as a vertical block for small size, or skewed)
+  // To keep it simple and pixel-efficient on ESP32:
+  for(int i=0; i<size; i++) {
+    int px = x + (size - 1) - i;
+    int py = curY + i;
+    spr.drawPixel(px, py, color);
+    spr.drawPixel(px-1, py, color); // thicken it
+  }
 }
 
 void RobotDisplay::transitionTo(int targetIndex) {
@@ -138,25 +173,40 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Smoothly lerp towards target look direction
   currentLookX = currentLookX + (targetLookX - currentLookX) * 0.1;
 
-  // Smoothly lerp blink states (increased from 0.15 to 0.45 for much faster blinking)
+  // Smoothly lerp blink states
   currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.7;
   currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
-  // Smoothly lerp happy states
-  currentHappyLeft = currentHappyLeft + (targetHappyLeft - currentHappyLeft) * 0.3;
-  currentHappyRight = currentHappyRight + (targetHappyRight - currentHappyRight) * 0.3;
+  // Smoothly lerp happy and sleep states
+  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.1;
+  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.1;
 
-  // Auto-reverse blink when almost fully closed (lowered threshold slightly from 0.95 to 0.90 for snappier return)
+  currentSleep = currentSleep + (targetSleep - currentSleep) * 0.05; // Slower sleep transition
+
+  // Auto-reverse blink when almost fully closed
   if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;
   if (targetBlinkRight > 0.5 && currentBlinkRight > 0.90) targetBlinkRight = 0.0;
-
-  // Auto-reverse happy state so it doesn't get stuck forever
-  if (targetHappyLeft > 0.5 && currentHappyLeft > 0.95) targetHappyLeft = 0.0;
-  if (targetHappyRight > 0.5 && currentHappyRight > 0.95) targetHappyRight = 0.0;
+  
+  // Draw Z's if sleeping
+  if (currentSleep > 0.9) {
+    zFloatTime += 0.02;
+    if (zFloatTime > 1.0) zFloatTime = 0.0;
+    
+    // 3 Z's with different sizes and phases
+    drawZzz(180, 80, 20, zFloatTime);
+    drawZzz(210, 60, 30, fmod(zFloatTime + 0.3, 1.0));
+    drawZzz(250, 50, 25, fmod(zFloatTime + 0.6, 1.0));
+  }
 
   // Breathing / Hovering math
   float floatY = sin(now / 800.0) * 3.0; 
   float wanderX = sin(now / 1500.0) * cos(now / 2000.0) * 2.0;
+
+  // Don't hover if sleeping
+  if (currentSleep > 0.5) {
+    floatY *= (1.0 - currentSleep);
+    wanderX *= (1.0 - currentSleep);
+  }
 
   int scx = (SPRITE_W / 2) + wanderX;
   int scy = (SPRITE_H / 2) + floatY;
@@ -164,9 +214,9 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Add touch look offset
   int lookOffset = currentLookX * 25; 
   
-  // Draw the two math-based static Eve eyes with dynamic blinking cutouts
-  drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft, currentHappyLeft);
-  drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight, currentHappyRight);
+  // Draw the two math-based static Eve eyes with dynamic blinking and happy cutouts
+  drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft, currentHappyLeft, currentSleep);
+  drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight, currentHappyRight, currentSleep);
 
   // --- PRESENCE INDICATOR ---
   /*
