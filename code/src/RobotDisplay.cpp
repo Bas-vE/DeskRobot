@@ -93,7 +93,7 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, fl
         // Happy cutout logic (Dynamic crescent mask)
         // We carve a chunk out of the bottom using another wide ellipse.
         if (happyAmount > 0.01) {
-           float maskOffset_Y = 110.0 - (happyAmount * 70.0); 
+           float maskOffset_Y = 125.0 - (happyAmount * 65.0); 
            float mask_a = 85.0; // wider than the eye
            float mask_b = 60.0; // tall enough to form a smooth curve
            float mask_ry = ry - maskOffset_Y; 
@@ -177,9 +177,9 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.7;
   currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
-  // Smoothly lerp happy and sleep states
-  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.3;
-  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.3;
+  // Smoothly lerp happy and sleep states (Increased happy speed to 0.5)
+  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.5;
+  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.5;
 
   currentSleep = currentSleep + (targetSleep - currentSleep) * 0.15; // Increased from 0.05 to 0.15 for faster closing
 

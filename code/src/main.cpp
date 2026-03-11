@@ -63,10 +63,8 @@ void loop() {
   if (currentMode == MODE_NORMAL) {
     if (now - lastBlinkTime > nextBlinkInterval) {
       int roll = random(0, 10);
-      if (roll < 2) {
-        robotDisplay.wink(random(0, 2) == 0); 
-      } else if (roll < 4) {
-        // Switch to Happy state instead of just a trigger
+      if (roll < 3) {
+        // Switch to Happy state
         currentMode = MODE_HAPPY;
         modeStartTime = now;
         happyDuration = random(15000, 20000); 
