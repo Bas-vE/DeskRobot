@@ -136,22 +136,34 @@ void RobotDisplay::setSleep(bool active) {
 }
 
 void RobotDisplay::drawZzz(int x, int y, int size, float offset) {
-  // Draw a simple 'Z' using 3 rectangles
+  // Draw a bold, slanted 'Z' mimicking the reference image
   // offset 0..1 determines floating vertical position
-  int curY = y - (offset * 30);
-  uint16_t color = spr.color8to16(spr.color16to8(EVE_BLUE));
+  int curY = y - (offset * 50);
   
-  // Top bar
-  spr.fillRect(x, curY, size, size/4, color);
-  // Bottom bar
-  spr.fillRect(x, curY + size - size/4, size, size/4, color);
-  // Diagonal (simplified as a vertical block for small size, or skewed)
-  // To keep it simple and pixel-efficient on ESP32:
-  for(int i=0; i<size; i++) {
-    int px = x + (size - 1) - i;
-    int py = curY + i;
-    spr.drawPixel(px, py, color);
-    spr.drawPixel(px-1, py, color); // thicken it
+  uint16_t colorCap = EVE_BLUE;
+  uint16_t colorDiag = EVE_BLUE_DARK;
+  
+  int thick = size / 3.5;
+  if (thick < 3) thick = 3;
+  int slant = size / 1.8;
+  
+  // Top bar (shifted right)
+  spr.fillRect(x + slant, curY, size, thick, colorCap);
+  
+  // Bottom bar (shifted left)
+  spr.fillRect(x - slant, curY + size - thick, size, thick, colorCap);
+  
+  // Thick Diagonal
+  // Linear interpolation between top-right and bottom-left
+  float xStart = x + slant + size - thick;
+  float xEnd = x - slant;
+  
+  for (int i = 0; i < size; i++) {
+    float p = (float)i / (float)size;
+    int px = xStart + (p * (xEnd - xStart));
+    spr.fillRect(px, curY + i, thick, 1, colorDiag);
+    // Add a bit of thickness to the slant
+    spr.fillRect(px - 1, curY + i, thick, 1, colorDiag);
   }
 }
 
@@ -192,10 +204,10 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
     zFloatTime += 0.02;
     if (zFloatTime > 1.0) zFloatTime = 0.0;
     
-    // 3 Z's with different sizes and phases - Spread out and Centered
-    drawZzz(70, 160, 40, zFloatTime);
-    drawZzz(125, 120, 70, fmod(zFloatTime + 0.3, 1.0)); 
-    drawZzz(210, 150, 50, fmod(zFloatTime + 0.6, 1.0));
+    // 3 Z's with different sizes and phases - Centered and Styled
+    drawZzz(60, 160, 35, zFloatTime);
+    drawZzz(140, 140, 60, fmod(zFloatTime + 0.3, 1.0)); 
+    drawZzz(230, 150, 45, fmod(zFloatTime + 0.6, 1.0));
   }
 
   // Breathing / Hovering math
