@@ -16,6 +16,7 @@ int nextBlinkInterval = 3000;
 unsigned long wakingStartTime = 0;
 int wakingStep = 0;
 unsigned long modeStartTime = 0;
+int interactStep = 0;
 unsigned long happyDuration = 0;
 unsigned long presenceStartTime = 0;
 bool lastPresenceState = false;
@@ -59,16 +60,16 @@ void loop() {
   } else if (currentMode == MODE_WAKING) {
     unsigned long elapsed = now - wakingStartTime;
     
-    // Stage 1: Fade in (0-1.5s)
-    if (elapsed < 1500) {
-      float b = (float)elapsed / 1500.0f;
+    // Stage 1: Fade in (0-0.8s)
+    if (elapsed < 800) {
+      float b = (float)elapsed / 800.0f;
       robotDisplay.setBrightness(b);
-    } else if (elapsed < 3500) {
-      // Stage 2: Blinking (1.5-3.5s)
+    } else if (elapsed < 2800) {
+      // Stage 2: Blinking (0.8-2.8s)
       robotDisplay.setBrightness(1.0);
       
-      // Fast blinks every 500ms
-      if (((elapsed - 1500) / 500) > wakingStep) {
+      // Fast blinks every 400ms
+      if (((elapsed - 800) / 400) > wakingStep) {
         robotDisplay.blink();
         wakingStep++;
       }
@@ -114,12 +115,35 @@ void loop() {
       Serial.println("Back to normal.");
     }
   } else if (currentMode == MODE_INTERACT) {
-    if (now - modeStartTime > 5000) { // 5 second interaction
-       currentMode = MODE_NORMAL;
-       robotDisplay.setHappy(false);
-       robotDisplay.setBlush(false);
-       lastBlinkTime = now;
-       Serial.println("Heart warmed. Back to normal.");
+    unsigned long elapsed = now - modeStartTime;
+    
+    // Step 0: Eyes squint into Happy (0 - 0.4s)
+    if (interactStep == 0) {
+      robotDisplay.setHappy(true);
+      if (elapsed > 400) {
+        interactStep = 1;
+        modeStartTime = now;
+        robotDisplay.setBlush(true); // Start fading in blush
+        Serial.println("Interacting: Blush appearing...");
+      }
+    } 
+    // Step 1: Hold Blush (Heart warmed) (0 - 5.0s)
+    else if (interactStep == 1) {
+      if (elapsed > 5000) {
+        interactStep = 2;
+        modeStartTime = now;
+        robotDisplay.setBlush(false); // Start fading out blush
+        Serial.println("Interacting: Blush fading out...");
+      }
+    }
+    // Step 2: Final Graceful Fade out of Eyes (Wait for blush to clear first)
+    else if (interactStep == 2) {
+      if (elapsed > 600) { // Give blush time to fade out (faster now)
+        robotDisplay.setHappy(false); // Start graceful eye return
+        currentMode = MODE_NORMAL;
+        lastBlinkTime = now;
+        Serial.println("Interacting: Eyes returning to normal. Heart warmed.");
+      }
     }
   }
 
@@ -130,9 +154,9 @@ void loop() {
     // We only trigger interaction on actual presses (5, 6, 7)
     if (touchStateTarget >= 5 && currentMode != MODE_SLEEPING && currentMode != MODE_WAKING) {
       currentMode = MODE_INTERACT;
+      interactStep = 0;
       modeStartTime = now;
-      robotDisplay.setHappy(true);
-      robotDisplay.setBlush(true);
+      robotDisplay.setHappy(true); // Ensure eyes start turning happy immediately
     }
     robotDisplay.transitionTo(touchStateTarget);
   } else {

@@ -240,8 +240,8 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
 
   currentSleep = currentSleep + (targetSleep - currentSleep) * 0.15; // Increased from 0.05 to 0.15 for faster closing
   
-  // Smoothly lerp blush
-  currentBlush = currentBlush + (targetBlush - currentBlush) * 0.1;
+  // Smoothly lerp blush (increased speed to 0.3)
+  currentBlush = currentBlush + (targetBlush - currentBlush) * 0.3;
 
   // Auto-reverse blink when almost fully closed
   if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;
@@ -280,30 +280,24 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
 
   // Draw blush if active
   if (currentBlush > 0.01) {
-    uint16_t pink = tft.color565(255, 120, 180); // Nice soft pink
-    
-    // Scale color by brightness
-    if (currentBrightness < 0.99) {
-      uint8_t r = (255 * currentBrightness);
-      uint8_t g = (120 * currentBrightness);
-      uint8_t b = (180 * currentBrightness);
-      pink = tft.color565(r, g, b);
-    }
-    
     int blushY = scy + 45;
     int blushX_Offset = eyeDist + 20;
-
-    // Draw solid ellipses for now (TFT_eSprite doesn't have drawEllipse, so we'll use wide rounded rects or custom loops)
-    // To match the math style, I'll draw them as small ovals
     int bw = 30; // blush width
     int bh = 15; // blush height
     
     for (int by = -bh; by <= bh; by++) {
       for (int bx = -bw; bx <= bw; bx++) {
         if ((float)(bx*bx)/(bw*bw) + (float)(by*by)/(bh*bh) <= 1.0) {
-           // We scale the intensity by currentBlush to fade it in
-           spr.drawPixel(scx - blushX_Offset + lookOffset + bx, blushY + by, pink);
-           spr.drawPixel(scx + blushX_Offset + lookOffset + bx, blushY + by, pink);
+           int sy = blushY + by;
+           
+           // CRT Scanline logic: Scale by currentBlush and currentBrightness
+           float totalScale = currentBlush * currentBrightness;
+           if (sy % 3 == 0) totalScale *= 0.4f; // Scanline darkening
+
+           uint16_t color = tft.color565(255 * totalScale, 120 * totalScale, 180 * totalScale);
+           
+           spr.drawPixel(scx - blushX_Offset + lookOffset + bx, sy, color);
+           spr.drawPixel(scx + blushX_Offset + lookOffset + bx, sy, color);
         }
       }
     }
