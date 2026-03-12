@@ -125,7 +125,7 @@ void loop() {
 
   // 2. Read Touch Input
   int touchStateTarget = robotTouch.checkTouch();
-  if (touchStateTarget > 0) {
+  if (touchStateTarget >= 0) {
     // If touch detected (5, 6, 7 or return-to-zero 0)
     // We only trigger interaction on actual presses (5, 6, 7)
     if (touchStateTarget >= 5 && currentMode != MODE_SLEEPING && currentMode != MODE_WAKING) {
