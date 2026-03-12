@@ -22,8 +22,11 @@ void setup() {
 unsigned long lastBlinkTime = 0;
 int nextBlinkInterval = 3000;
 
-enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING };
+enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING };
 RobotMode currentMode = MODE_NORMAL;
+
+unsigned long wakingStartTime = 0;
+int wakingStep = 0;
 
 unsigned long modeStartTime = 0;
 unsigned long happyDuration = 0;
@@ -44,10 +47,36 @@ void loop() {
 
   // State Transitions
   if (currentMode == MODE_SLEEPING) {
-    if (presence && (now - presenceStartTime > 2000)) {
-      currentMode = MODE_NORMAL;
+    if (presence && (now - presenceStartTime > 5000)) { // 5 second wake-up delay
+      currentMode = MODE_WAKING;
+      wakingStartTime = now;
+      wakingStep = 0;
       robotDisplay.setSleep(false);
-      Serial.println("Waking up...");
+      robotDisplay.setBrightness(0.0);
+      Serial.println("Starting wake sequence...");
+    }
+  } else if (currentMode == MODE_WAKING) {
+    unsigned long elapsed = now - wakingStartTime;
+    
+    // Stage 1: Fade in (0-1.5s)
+    if (elapsed < 1500) {
+      float b = (float)elapsed / 1500.0f;
+      robotDisplay.setBrightness(b);
+    } else if (elapsed < 3500) {
+      // Stage 2: Blinking (1.5-3.5s)
+      robotDisplay.setBrightness(1.0);
+      
+      // Fast blinks every 500ms
+      if (((elapsed - 1500) / 500) > wakingStep) {
+        robotDisplay.blink();
+        wakingStep++;
+      }
+    } else {
+      // Sequence complete
+      currentMode = MODE_NORMAL;
+      robotDisplay.setBrightness(1.0);
+      lastBlinkTime = now;
+      Serial.println("Back to normal.");
     }
   } else {
     // If we lose presence, we go to sleep immediately

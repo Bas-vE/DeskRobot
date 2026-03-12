@@ -20,6 +20,7 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   targetSleep = 0;
   currentSleep = 0;
   zFloatTime = 0;
+  currentBrightness = 1.0;
 }
 
 void RobotDisplay::init() {
@@ -104,10 +105,21 @@ void RobotDisplay::drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, fl
         }
 
         // Scanlines: every 3rd pixel line is drawn dark to mimic CRT pixels
-        if ((cy + y) % 3 == 0) {
-           spr.drawPixel(cx + x, cy + y, spr.color8to16(spr.color16to8(EVE_BLUE_DARK)));
+        uint16_t baseColor = ((cy + y) % 3 == 0) ? EVE_BLUE_DARK : EVE_BLUE;
+        
+        if (currentBrightness < 0.99) {
+          uint8_t r = (baseColor >> 11) & 0x1F;
+          uint8_t g = (baseColor >> 5) & 0x3F;
+          uint8_t b_low = baseColor & 0x1F;
+          
+          r = (uint8_t)(r * currentBrightness);
+          g = (uint8_t)(g * currentBrightness);
+          b_low = (uint8_t)(b_low * currentBrightness);
+          
+          uint16_t shadedColor = (r << 11) | (g << 5) | b_low;
+          spr.drawPixel(cx + x, cy + y, shadedColor);
         } else {
-           spr.drawPixel(cx + x, cy + y, spr.color8to16(spr.color16to8(EVE_BLUE)));
+          spr.drawPixel(cx + x, cy + y, baseColor);
         }
       }
     }
@@ -133,6 +145,12 @@ void RobotDisplay::setHappy(bool active) {
 
 void RobotDisplay::setSleep(bool active) {
   targetSleep = active ? 1.0 : 0.0;
+}
+
+void RobotDisplay::setBrightness(float b) {
+  if (b < 0) b = 0;
+  if (b > 1) b = 1;
+  currentBrightness = b;
 }
 
 void RobotDisplay::drawZzz(int x, int y, int size, float offset) {

@@ -24,6 +24,7 @@ public:
   void wink(bool leftEye);
   void setHappy(bool active);
   void setSleep(bool active);
+  void setBrightness(float b);
 
 private:
   TFT_eSPI tft;
@@ -48,6 +49,7 @@ private:
   float targetSleep;
   float currentSleep;
   float zFloatTime;
+  float currentBrightness;
 
   // Draws a math-based tilted oval mimicking Eve's eyes
   void drawEveEye(int cx, int cy, bool isLeft, float blinkAmount, float happyAmount, float sleepAmount);
