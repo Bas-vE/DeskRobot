@@ -222,9 +222,14 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentBlinkLeft = currentBlinkLeft + (targetBlinkLeft - currentBlinkLeft) * 0.7;
   currentBlinkRight = currentBlinkRight + (targetBlinkRight - currentBlinkRight) * 0.7;
   
-  // Smoothly lerp happy and sleep states (Increased happy speed to 0.5)
-  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * 0.7;
-  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * 0.7;
+  // Smoothly lerp happy and sleep states
+  // Snappy "In" (0.8), Graceful "Out" (0.15)
+  float happySpeed = (targetHappy > 0.5) ? 0.8 : 0.15;
+  
+  // Left eye follows immediately
+  currentHappyLeft = currentHappyLeft + (targetHappy - currentHappyLeft) * happySpeed;
+  // Right eye follows with a tiny bit of "biological" lag for a nicer feel
+  currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * (happySpeed * 0.9);
 
   currentSleep = currentSleep + (targetSleep - currentSleep) * 0.15; // Increased from 0.05 to 0.15 for faster closing
 
