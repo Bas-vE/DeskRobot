@@ -8,6 +8,18 @@ RobotDisplay robotDisplay;
 RobotTouch robotTouch;
 RobotSensor robotSensor;
 
+enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING };
+RobotMode currentMode = MODE_WAKING;
+
+unsigned long lastBlinkTime = 0;
+int nextBlinkInterval = 3000;
+unsigned long wakingStartTime = 0;
+int wakingStep = 0;
+unsigned long modeStartTime = 0;
+unsigned long happyDuration = 0;
+unsigned long presenceStartTime = 0;
+bool lastPresenceState = false;
+
 void setup() {
   Serial.begin(115200);
 
@@ -21,20 +33,6 @@ void setup() {
 
   Serial.println("EVE-TV Modules Initialized - Starting Wake Sequence");
 }
-
-unsigned long lastBlinkTime = 0;
-int nextBlinkInterval = 3000;
-
-enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING };
-RobotMode currentMode = MODE_WAKING;
-
-unsigned long wakingStartTime = 0;
-int wakingStep = 0;
-
-unsigned long modeStartTime = 0;
-unsigned long happyDuration = 0;
-unsigned long presenceStartTime = 0;
-bool lastPresenceState = false;
 
 void loop() {
   unsigned long now = millis();
