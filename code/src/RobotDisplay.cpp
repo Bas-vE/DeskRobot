@@ -154,34 +154,49 @@ void RobotDisplay::setBrightness(float b) {
 }
 
 void RobotDisplay::drawZzz(int x, int y, int size, float offset) {
-  // Draw a bold, slanted 'Z' mimicking the reference image
-  // offset 0..1 determines floating vertical position
-  int curY = y - (offset * 50);
-  
-  uint16_t colorCap = EVE_BLUE;
-  uint16_t colorDiag = EVE_BLUE_DARK;
-  
-  int thick = size / 3.5;
-  if (thick < 3) thick = 3;
-  int slant = size / 1.8;
-  
-  // Top bar (shifted right)
-  spr.fillRect(x + slant, curY, size, thick, colorCap);
-  
-  // Bottom bar (shifted left)
-  spr.fillRect(x - slant, curY + size - thick, size, thick, colorCap);
-  
-  // Thick Diagonal
-  // Linear interpolation between top-right and bottom-left
-  float xStart = x + slant + size - thick;
-  float xEnd = x - slant;
-  
-  for (int i = 0; i < size; i++) {
-    float p = (float)i / (float)size;
-    int px = xStart + (p * (xEnd - xStart));
-    spr.fillRect(px, curY + i, thick, 1, colorDiag);
-    // Add a bit of thickness to the slant
-    spr.fillRect(px - 1, curY + i, thick, 1, colorDiag);
+  // Draw a cohesive, math-based 'Z' with CRT scanlines
+  // x, y is the center of the Z
+  int curY = y - (offset * 60); // Drift upwards more
+  int halfSize = size / 2;
+  int thickness = size / 4;
+  if (thickness < 4) thickness = 4;
+
+  for (int dy = 0; dy < size; dy++) {
+    for (int dx = 0; dx < size; dx++) {
+      bool draw = false;
+      
+      // Top bar
+      if (dy < thickness) draw = true;
+      // Bottom bar
+      else if (dy > size - thickness) draw = true;
+      // Diagonal: connects top-right to bottom-left
+      else {
+        // Line x + y = size connects (size, 0) and (0, size)
+        float dist = abs(dx + dy - size);
+        if (dist < (thickness / 1.5f)) draw = true;
+      }
+
+      if (draw) {
+        int sx = x + dx - halfSize;
+        int sy = curY + dy - halfSize;
+        
+        // Bounds check
+        if (sx < 0 || sx >= SPRITE_W || sy < 0 || sy >= SPRITE_H) continue;
+
+        // CRT Scanline effect (consistent with eyes)
+        uint16_t color = (sy % 3 == 0) ? EVE_BLUE_DARK : EVE_BLUE;
+        
+        // Apply global brightness (for fading/sleep)
+        if (currentBrightness < 0.99) {
+          uint8_t r = ((color >> 11) & 0x1F) * currentBrightness;
+          uint8_t g = ((color >> 5) & 0x3F) * currentBrightness;
+          uint8_t b = (color & 0x1F) * currentBrightness;
+          color = (r << 11) | (g << 5) | b;
+        }
+        
+        spr.drawPixel(sx, sy, color);
+      }
+    }
   }
 }
 
@@ -222,10 +237,10 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
     zFloatTime += 0.02;
     if (zFloatTime > 1.0) zFloatTime = 0.0;
     
-    // 3 Z's with different sizes and phases - Centered and Styled
-    drawZzz(60, 160, 35, zFloatTime);
-    drawZzz(140, 140, 60, fmod(zFloatTime + 0.3, 1.0)); 
-    drawZzz(230, 150, 45, fmod(zFloatTime + 0.6, 1.0));
+    // 3 Z's with different sizes and phases - Centered
+    drawZzz(SPRITE_W/2 - 50, SPRITE_H/2 + 30, 35, zFloatTime);
+    drawZzz(SPRITE_W/2, SPRITE_H/2 + 10, 60, fmod(zFloatTime + 0.3, 1.0)); 
+    drawZzz(SPRITE_W/2 + 60, SPRITE_H/2 + 20, 45, fmod(zFloatTime + 0.6, 1.0));
   }
 
   // Breathing / Hovering math
