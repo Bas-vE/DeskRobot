@@ -16,14 +16,17 @@ void setup() {
   robotDisplay.init();
   robotTouch.init();
 
-  Serial.println("EVE-TV Modules Initialized");
+  wakingStartTime = millis();
+  robotDisplay.setBrightness(0.0);
+
+  Serial.println("EVE-TV Modules Initialized - Starting Wake Sequence");
 }
 
 unsigned long lastBlinkTime = 0;
 int nextBlinkInterval = 3000;
 
 enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING };
-RobotMode currentMode = MODE_NORMAL;
+RobotMode currentMode = MODE_WAKING;
 
 unsigned long wakingStartTime = 0;
 int wakingStep = 0;
