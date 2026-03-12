@@ -8,7 +8,7 @@ RobotDisplay robotDisplay;
 RobotTouch robotTouch;
 RobotSensor robotSensor;
 
-enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING };
+enum RobotMode { MODE_NORMAL, MODE_HAPPY, MODE_SLEEPING, MODE_WAKING, MODE_INTERACT };
 RobotMode currentMode = MODE_WAKING;
 
 unsigned long lastBlinkTime = 0;
@@ -113,11 +113,27 @@ void loop() {
       lastBlinkTime = now; // reset blink timer
       Serial.println("Back to normal.");
     }
+  } else if (currentMode == MODE_INTERACT) {
+    if (now - modeStartTime > 5000) { // 5 second interaction
+       currentMode = MODE_NORMAL;
+       robotDisplay.setHappy(false);
+       robotDisplay.setBlush(false);
+       lastBlinkTime = now;
+       Serial.println("Heart warmed. Back to normal.");
+    }
   }
 
   // 2. Read Touch Input
   int touchStateTarget = robotTouch.checkTouch();
-  if (touchStateTarget != -1) {
+  if (touchStateTarget > 0) {
+    // If touch detected (5, 6, 7 or return-to-zero 0)
+    // We only trigger interaction on actual presses (5, 6, 7)
+    if (touchStateTarget >= 5 && currentMode != MODE_SLEEPING && currentMode != MODE_WAKING) {
+      currentMode = MODE_INTERACT;
+      modeStartTime = now;
+      robotDisplay.setHappy(true);
+      robotDisplay.setBlush(true);
+    }
     robotDisplay.transitionTo(touchStateTarget);
   } else {
     // 3. Update Display

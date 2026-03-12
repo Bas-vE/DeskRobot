@@ -21,6 +21,9 @@ RobotDisplay::RobotDisplay() : tft(TFT_eSPI()), spr(TFT_eSprite(&tft)) {
   currentSleep = 0;
   zFloatTime = 0;
   currentBrightness = 1.0;
+  
+  targetBlush = 0;
+  currentBlush = 0;
 }
 
 void RobotDisplay::init() {
@@ -153,6 +156,10 @@ void RobotDisplay::setBrightness(float b) {
   currentBrightness = b;
 }
 
+void RobotDisplay::setBlush(bool active) {
+  targetBlush = active ? 1.0 : 0.0;
+}
+
 void RobotDisplay::drawZzz(int x, int y, int size, float offset) {
   // Draw a cohesive, math-based 'Z' with CRT scanlines
   // x, y is the center of the Z
@@ -232,6 +239,9 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   currentHappyRight = currentHappyRight + (targetHappy - currentHappyRight) * (happySpeed * 0.9);
 
   currentSleep = currentSleep + (targetSleep - currentSleep) * 0.15; // Increased from 0.05 to 0.15 for faster closing
+  
+  // Smoothly lerp blush
+  currentBlush = currentBlush + (targetBlush - currentBlush) * 0.1;
 
   // Auto-reverse blink when almost fully closed
   if (targetBlinkLeft > 0.5 && currentBlinkLeft > 0.90) targetBlinkLeft = 0.0;
@@ -267,6 +277,37 @@ void RobotDisplay::update(unsigned long now, bool presenceDetected) {
   // Draw the two math-based static Eve eyes with dynamic blinking and happy cutouts
   drawEveEye(scx - eyeDist + lookOffset, scy, true, currentBlinkLeft, currentHappyLeft, currentSleep);
   drawEveEye(scx + eyeDist + lookOffset, scy, false, currentBlinkRight, currentHappyRight, currentSleep);
+
+  // Draw blush if active
+  if (currentBlush > 0.01) {
+    uint16_t pink = tft.color565(255, 120, 180); // Nice soft pink
+    
+    // Scale color by brightness
+    if (currentBrightness < 0.99) {
+      uint8_t r = (255 * currentBrightness);
+      uint8_t g = (120 * currentBrightness);
+      uint8_t b = (180 * currentBrightness);
+      pink = tft.color565(r, g, b);
+    }
+    
+    int blushY = scy + 45;
+    int blushX_Offset = eyeDist + 20;
+
+    // Draw solid ellipses for now (TFT_eSprite doesn't have drawEllipse, so we'll use wide rounded rects or custom loops)
+    // To match the math style, I'll draw them as small ovals
+    int bw = 30; // blush width
+    int bh = 15; // blush height
+    
+    for (int by = -bh; by <= bh; by++) {
+      for (int bx = -bw; bx <= bw; bx++) {
+        if ((float)(bx*bx)/(bw*bw) + (float)(by*by)/(bh*bh) <= 1.0) {
+           // We scale the intensity by currentBlush to fade it in
+           spr.drawPixel(scx - blushX_Offset + lookOffset + bx, blushY + by, pink);
+           spr.drawPixel(scx + blushX_Offset + lookOffset + bx, blushY + by, pink);
+        }
+      }
+    }
+  }
 
   // --- PRESENCE INDICATOR ---
   /*
